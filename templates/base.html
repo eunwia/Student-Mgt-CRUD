@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta http-equiv="X-UA-Compatible" content="ie-edge">
+		<meta name="viewport" content="width=device-width,initial-scale=1.0">
+		<link rel="stylesheet" href="{{ url_for('static',filename='css/w3.css') }}">
+		<title>Student Management v1.0</title>
+	</head>
+	<body class="w3-light-gray"> 
+		<div class="w3-bar w3-container w3-info" style="position:sticky;top:0">
+			<h4><b>Student Management v1.0</b></h4>
+		</div>
+
+        <!-- FLASH MESSAGES -->
+		<div class="w3-container w3-padding">
+			{% with messages = get_flashed_messages(with_categories=true) %}
+			  {% if messages %}
+				{% for category, message in messages %}
+				  <div class="w3-panel 
+					  {% if category=='success' %}w3-green{% elif category=='error' %}w3-red{% else %}w3-blue{% endif %}" 
+					   style="padding-top: 15px; padding-bottom: 15px;">
+					  {{ message }}
+				  </div>
+				{% endfor %}
+			  {% endif %}
+		{% endwith %}
+	</div>
+		<div class="w3-container w3-padding">
+			{% block content %}
+			{% endblock %}
+		</div>
+		<center>
+			&copy; MONTALLANA, 2025
+		</center>
+		<script>
+			function modalcontrol(modal,control){
+				document.getElementById(modal).style.display=control;
+			}
+			function deleteuser(id){
+				var ok=confirm("Delete this Student?");
+				if(ok){
+					location.href="/deleteuser?id="+id;
+				}
+			}
+		</script>
+	</body>
+</html>

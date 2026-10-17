@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<style>
+	/* Modal styling */
+	#cameraModal .w3-modal-content {
+		border-radius: 10px;
+		box-shadow: 0 4px 18px rgba(0,0,0,0.35);
+	}
+
+	/* Soft shadow for table */
+	table.w3-table-all {
+		box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+	}
+</style>
+
+<div class="w3-row">
+
+	<!-- LEFT SIDE FORM -->
+	<div class="w3-card w3-col l4 m4 s12 w3-white w3-padding">
+		<div class="w3-border w3-padding">
+			<h5><b>STUDENT INFORMATION</b></h5>
+
+			<form id="studentForm" action="{{ url_for('savestudent') }}" method="POST" enctype="multipart/form-data">
+				<center>
+
+					<!-- Preview Picture -->
+					<img id="preview" 
+						 src="https://img.icons8.com/fluent/1200/user-male-circle.jpg"
+						 style="width:150px;height:150px;object-fit:cover;border-radius:4px;margin-bottom:10px;">
+
+					<!-- Buttons container (Upload + Take Picture) -->
+					<div style="display:flex;justify-content:center;gap:10px;margin-bottom:10px;">
+
+						<!-- Upload Picture Button -->
+						<label for="webcam" class="w3-button w3-info w3-round w3-small">
+							UPLOAD PICTURE
+						</label>
+
+						<!-- Take Picture Button -->
+						<button type="button" class="w3-button w3-info w3-round w3-small" onclick="openCamera()">
+							TAKE PICTURE
+						</button>
+
+					</div>
+
+					<!-- File input (hidden) -->
+					<input type="file" name="webcam" id="webcam" accept="image/*" style="display:none" onchange="previewImage(event)">
+
+					<!-- Hidden input for camera snapshot -->
+					<input type="hidden" name="cameraImage" id="cameraImage">
+
+				</center>
+
+				<label><b>IDNO</b></label>
+				<input class="w3-input w3-border w3-margin-bottom" name="idno" id="idno" required>
+
+				<label><b>LASTNAME</b></label>
+				<input class="w3-input w3-border w3-margin-bottom" name="lastname" id="lastname" required>
+
+				<label><b>FIRSTNAME</b></label>
+				<input class="w3-input w3-border w3-margin-bottom" name="firstname" id="firstname" required>
+
+				<label><b>COURSE</b></label>
+				<select class="w3-select w3-border w3-margin-bottom" name="course" id="course">
+					<option>COMPUTER ENGINEERING</option>
+					<option>INFORMATION TECHNOLOGY</option>
+					<option>COMPUTER SCIENCE</option>
+				</select>
+
+				<label><b>LEVEL</b></label>
+				<select class="w3-select w3-border w3-margin-bottom" name="level" id="level">
+					<option>FIRST YEAR</option>
+					<option>SECOND YEAR</option>
+					<option>THIRD YEAR</option>
+					<option>FOURTH YEAR</option>
+				</select>
+
+				<div class="w3-margin-top">
+					<center>
+						<button class="w3-button w3-info w3-margin-left w3-margin-bottom w3-round w3-small">SAVE</button>
+						<button class="w3-button w3-green w3-margin-bottom w3-round w3-small" type="reset" onclick="resetPreview()">CANCEL</button>
+					</center>
+				</div>
+			</form>
+		</div>
+	</div>
+
+	<!-- RIGHT SIDE TABLE -->
+	<div class="w3-col l8 m8 s12 w3-padding">
+		<table class="w3-table-all w3-hoverable">
+
+			<th>IDNO</th>
+			<th class="w3-hide-small w3-hide-medium">LASTNAME</th>
+			<th class="w3-hide-small w3-hide-medium">FIRSTNAME</th>
+			<th class="w3-hide-large">NAME</th>
+			<th class="w3-hide-small w3-hide-medium">COURSE</th>
+			<th class="w3-hide-small w3-hide-medium">LEVEL</th>
+			<th class="w3-hide-large">COURSE & LEVEL</th>
+			<th>ACTION</th>
+
+			{% for s in students %}
+			<tr data-image="{{ s['image'] }}">
+				<td>{{ s["idno"] }}</td>
+				<td class="w3-hide-small w3-hide-medium">{{ s["lastname"] | upper }}</td>
+				<td class="w3-hide-small w3-hide-medium">{{ s["firstname"] | upper }}</td>
+				<td class="w3-hide-large">{{ s["lastname"] }}, {{ s["firstname"] }}</td>
+				<td class="w3-hide-small w3-hide-medium">{{ s["course"] }}</td>
+				<td class="w3-hide-small w3-hide-medium">{{ s["level"] }}</td>
+				<td class="w3-hide-large">{{ s["course"] }} - {{ s["level"] }}</td>
+				<td>
+					<!-- Edit -->
+					<button type="button" class="w3-button w3-border w3-round-small w3-small"
+						onclick="editRow(this)">
+						&#9998;
+					</button>
+
+					<!-- Delete -->
+					<button type="button" class="w3-button w3-border w3-round-small w3-small"
+						onclick="deleteRow('{{ s['idno'] }}')">
+						&#128465;
+					</button>
+				</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</div>
+</div>
+
+<!-- CAMERA MODAL -->
+<div id="cameraModal" class="w3-modal">
+	<div class="w3-modal-content w3-padding" style="max-width:400px">
+
+		<h4 class="w3-center">Take a Picture</h4>
+
+		<video id="cameraLive" width="100%" autoplay style="border:1px solid #ccc;border-radius:4px;"></video>
+
+		<div class="w3-center w3-margin-top">
+			<button class="w3-button w3-green w3-round" onclick="snapPicture()">SNAP</button>
+			<button class="w3-button w3-red w3-round" onclick="closeCamera()">CANCEL</button>
+		</div>
+
+	</div>
+</div>
+
+<script>
+	/* --------------------
+	   IMAGE PREVIEW
+	---------------------*/
+	function previewImage(event) {
+		const reader = new FileReader();
+		reader.onload = () => document.getElementById('preview').src = reader.result;
+		if(event.target.files[0]) reader.readAsDataURL(event.target.files[0]);
+	}
+
+	function resetPreview(){
+		document.getElementById('preview').src =
+		"https://img.icons8.com/fluent/1200/user-male-circle.jpg";
+	}
+
+	/* --------------------
+	   CAMERA MODAL
+	---------------------*/
+	let camStream = null;
+
+	function openCamera(){
+		document.getElementById("cameraModal").style.display = "block";
+
+		navigator.mediaDevices.getUserMedia({ video: true })
+			.then(stream => {
+				camStream = stream;
+				document.getElementById("cameraLive").srcObject = stream;
+			})
+			.catch(() => alert("Camera access denied"));
+	}
+
+	function snapPicture(){
+		const video = document.getElementById("cameraLive");
+		const canvas = document.createElement("canvas");
+
+		canvas.width = video.videoWidth;
+		canvas.height = video.videoHeight;
+
+		canvas.getContext("2d").drawImage(video, 0, 0, canvas.width, canvas.height);
+
+		const dataURL = canvas.toDataURL("image/png");
+
+		document.getElementById("preview").src = dataURL;
+		document.getElementById("cameraImage").value = dataURL;
+
+		closeCamera();
+	}
+
+	function closeCamera(){
+		document.getElementById("cameraModal").style.display = "none";
+
+		if(camStream){
+			camStream.getTracks().forEach(track => track.stop());
+		}
+	}
+
+	/* --------------------
+	   EDIT ROW
+	---------------------*/
+	function editRow(btn){
+		var row = btn.closest("tr");
+		document.getElementById("idno").value = row.cells[0].innerText;
+		document.getElementById("lastname").value = row.cells[1].innerText || row.cells[3].innerText.split(",")[0];
+		document.getElementById("firstname").value = row.cells[2].innerText || row.cells[3].innerText.split(",")[1].trim();
+		document.getElementById("course").value = row.cells[4].innerText || row.cells[6].innerText.split(" - ")[0];
+		document.getElementById("level").value = row.cells[5].innerText || row.cells[6].innerText.split(" - ")[1];
+
+		var img = row.getAttribute('data-image');
+		if(img && img !== "") {
+			document.getElementById("preview").src = img;
+		} else {
+			resetPreview();
+		}
+
+		window.scrollTo({ top: 0, behavior: 'smooth' });
+	}
+
+	/* --------------------
+	   DELETE ROW
+	---------------------*/
+	function deleteRow(id){
+		if(confirm("Delete this student?")){
+			window.location.href = "/deleteuser?id=" + id;
+		}
+	}
+</script>
+
+{% endblock %}
